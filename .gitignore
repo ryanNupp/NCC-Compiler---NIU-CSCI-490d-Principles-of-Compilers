@@ -1,3 +1,6 @@
-.cache
+.cache/
+obj/
+
+ncc
 compile_commands.json
 txt.txt
