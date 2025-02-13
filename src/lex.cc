@@ -171,18 +171,16 @@ Error block_comment(Token &tok) {
     return err;
 }
 
-// returns -2 eof
-// returns -5 not enough hex characters
+// returns NCC_INVALID_UTF8
 // otherwise adds unicode character to the string
 int get_ucode_num(Token &tok) {
     long ucode_num = 0;
     char ch;
 
     for (int i=0; i<6; i++) {
-        std::cout << "test\n";
         if (buf_get_next_char(ch) != 0 || !is_hex(ch)) {
             buf_prev_char();
-            return NCC_INVALID_UNICODE;
+            return NCC_INVALID_UTF8;
         }
 
         ucode_num *= 0x10;
@@ -202,12 +200,15 @@ int get_ucode_num(Token &tok) {
     if (ucode_num >= 0x0 && ucode_num <= 0x7F) {
         // 0yyy zzzz
         ucode_num = ucode_num & 0x7F;
+        tok.string_val += ((ucode_num & 0x000000FF));
     }
     else if (ucode_num >= 0x80 && ucode_num <= 0x7FF) {
         // 110xx xxyy 10yy zzzz
         ucode_num = 0xC080
                   + (ucode_num & 0x03F)
                   + ((ucode_num & 0x7C0) << 2);
+        tok.string_val += ((ucode_num & 0x0000FF00) >> 8);
+        tok.string_val += ((ucode_num & 0x000000FF));
     }
     else if (ucode_num >= 0x800 && ucode_num <= 0xFFFF) {
         // 1110 wwww 10xx xxyy 10yy zzzz
@@ -215,6 +216,9 @@ int get_ucode_num(Token &tok) {
                   + (ucode_num & 0x03F)
                   + ((ucode_num & 0x0FC0) << 2)
                   + ((ucode_num & 0xF000) << 4);
+        tok.string_val += ((ucode_num & 0x00FF0000) >> 16);
+        tok.string_val += ((ucode_num & 0x0000FF00) >> 8);
+        tok.string_val += ((ucode_num & 0x000000FF));
     }
     else if (ucode_num >= 0x10000 && ucode_num <= 0x10FFFF) {
         // 1111 0uvv 10vv wwww 10xx xxyy 10yy zzzz
@@ -223,17 +227,15 @@ int get_ucode_num(Token &tok) {
                   + ((ucode_num & 0x000FC0) << 2)
                   + ((ucode_num & 0x03F000) << 4)
                   + ((ucode_num & 0x1C0000) << 6);
+        tok.string_val += ((ucode_num & 0xFF000000) >> 24);
+        tok.string_val += ((ucode_num & 0x00FF0000) >> 16);
+        tok.string_val += ((ucode_num & 0x0000FF00) >> 8);
+        tok.string_val += ((ucode_num & 0x000000FF));
     }
     else {
-        return NCC_INVALID_UNICODE;
+        return NCC_INVALID_UTF8;
     }
-
-    std::cout << std::bitset<8>((ucode_num & 0xFF000000) >> 4*6) << " "
-              << std::bitset<8>((ucode_num & 0x00FF0000) >> 4*4) << " "
-              << std::bitset<8>((ucode_num & 0x0000FF00) >> 4*2) << " "
-              << std::bitset<8>((ucode_num & 0x000000FF)) << "\n";
     
-    tok.string_val += char8_t(ucode_num);
     return NCC_OK;
 }
 
@@ -269,8 +271,8 @@ Error string_token(Token &tok) {
             case 'b':     ch = '\b';    break;
             // unicode encoding
             case 'u':
-                if (get_ucode_num(tok) == NCC_INVALID_UNICODE) {
-                    err.id = NCC_INVALID_UNICODE;
+                if (get_ucode_num(tok) == NCC_INVALID_UTF8) {
+                    err.id = NCC_INVALID_UTF8;
                     err.line = buf_line_pos;
                     err.col  = buf_col_pos;
                 }

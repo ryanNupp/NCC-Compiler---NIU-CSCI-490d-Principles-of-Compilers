@@ -22,7 +22,7 @@ void print_error(const Error &err) {
         cout << "Unknown escape sequence " << err.str << " at "
              << err.line << ":" << err.col << "\n";
         break;
-    case NCC_INVALID_UNICODE:
+    case NCC_INVALID_UTF8:
         cout << "Invalid unicode " << " at "
              << err.line << ":" << err.col << "\n";
     }
