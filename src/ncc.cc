@@ -25,5 +25,7 @@ int main(int argc, char **argv) {
             print_token(tok);
     }
 
+    lex_cleanup();
+
     return 0;
 }

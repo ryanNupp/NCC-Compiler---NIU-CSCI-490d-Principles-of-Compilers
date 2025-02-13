@@ -30,7 +30,9 @@ Error lex_init(const char *filepath) {
     return err;
 }
 
-void lex_cleanup() {}
+void lex_cleanup() {
+    buf_cleanup();
+}
 
 bool lex_eof() {
     return end_of_file;
