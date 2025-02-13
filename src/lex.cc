@@ -91,9 +91,8 @@ Error get_token(Token &tok) {
             break;
         }
         buf_prev_char();
-        tok.id = TOKEN_NULL;
+        buf_get_curr_char(err.ch);
         err.id = NCC_UNKNOWN_SYMBOL;
-        err.ch = ch;
         break;
 
     // tokens  >  >=
@@ -136,25 +135,30 @@ Error get_token(Token &tok) {
                 return get_token(tok);
             }
         }
-        tok.id = TOKEN_NULL;
         err.id = NCC_EOF;
         break;
 
     // strings
     case '"':
         return string_token(tok);
-    }
-    // identifiers
-    if (is_alpha(ch) || is_underscore(ch))
-        return ident_token(tok);
+    
+    default:
+        // identifiers
+        if (is_alpha(ch) || is_underscore(ch))
+            return ident_token(tok);
 
-    // integers
-    if (is_digit(ch))
-        return int_token(tok);
+        // integers
+        else if (is_digit(ch))
+            return int_token(tok);
+
+        err.ch = ch;
+        err.id = NCC_UNKNOWN_SYMBOL;
+    }
 
     buf_next_char();
     return err;
 }
+
 
 Error block_comment(Token &tok) {
     char ch;
@@ -173,8 +177,112 @@ Error block_comment(Token &tok) {
     return err;
 }
 
-// returns NCC_INVALID_UTF8
-// otherwise adds unicode character to the string
+
+Error ident_token(Token &tok) {
+    Error err;
+    err.id = NCC_OK;
+
+    char ch;
+    buf_get_curr_char(ch);
+    string ident_str (1, ch);
+    
+    while (buf_get_next_char(ch) == 0 && 
+          (is_alpha(ch) || is_digit(ch) || is_underscore(ch))) {
+        ident_str += ch;
+    }
+
+    tok.id = TOKEN_IDENT;
+    tok.string_val = ident_str;
+    return err;
+}
+
+// 
+Error int_token(Token &tok) {
+    Error err;
+    err.id = NCC_OK;
+    tok.id = TOKEN_INTEGER;
+
+    char ch;
+    buf_get_curr_char(ch);
+    long val = ch - 48;
+
+    while (buf_get_next_char(ch) == 0 && is_digit(ch)) {
+        val *= 10;
+        val += (ch - 48);
+    }
+
+    tok.int_val = val;
+    return err;
+}
+
+// TODO
+Error float_token(Token &tok) {
+    Error err;
+    return err;
+}
+
+// Process a string token
+//   if EOF before closing quote " - return error NCC_EOF
+//   if unknown escape sequence    - return error NCC_UNKNOWN_ESC_SEQ
+//   if invalid UTF-8 after \u     - return error NCC_INVALID_UTF8
+//      -- valid UTF-8 must be: \u followed by 6 hex digits
+//         * the hex value must not be greater than 10FFFF
+//         * any extra digits will just become another character in the string
+Error string_token(Token &tok) {
+    Error err;
+    err.id = NCC_OK;
+    tok.id = TOKEN_STRING;
+
+    tok.string_val = "";
+    char ch;
+    
+    while (buf_get_next_char(ch) == 0) {
+        switch (ch) {
+        case '"':
+            buf_next_char();
+            return err;
+        case '\\':
+            if (buf_get_next_char(ch) != 0) {
+                err.id = NCC_EOF;
+                return err;
+            }
+            switch (ch) {
+            // line continuation, skip
+            case '\n':    continue;
+            // add character as-is
+            case '"':
+            case '\\':    break;
+            // convert to escaped version
+            case 'r':     ch = '\r';    break;
+            case 'n':     ch = '\n';    break;
+            case 't':     ch = '\t';    break;
+            case 'a':     ch = '\a';    break;
+            case 'b':     ch = '\b';    break;
+            // unicode encoding
+            case 'u':
+                if (get_ucode_num(tok) == NCC_INVALID_UTF8) {
+                    err.id = NCC_INVALID_UTF8;
+                    err.line = buf_line_pos;
+                    err.col  = buf_col_pos;
+                }
+                continue;
+            // unknown escape sequence
+            default:
+                err.id = NCC_UNKNOWN_ESCAPE_SEQ;
+                err.line = buf_line_pos;
+                err.col  = buf_col_pos;
+                err.str  = {'\\', ch};
+                continue;
+            }
+        }
+        tok.string_val += ch;
+    }
+    err.id = NCC_EOF;
+    return err;
+}
+
+// adds unicode character to the string in the given Token& tok
+//   returns NCC_INVALID_UTF8 if invalid unicode
 int get_ucode_num(Token &tok) {
     long ucode_num = 0;
     char ch;
@@ -239,100 +347,6 @@ int get_ucode_num(Token &tok) {
     }
     
     return NCC_OK;
-}
-
-Error string_token(Token &tok) {
-    Error err;
-    err.id = NCC_OK;
-    tok.id = TOKEN_STRING;
-
-    tok.string_val = "";
-    char ch;
-    
-    while (buf_get_next_char(ch) == 0) {
-        switch (ch) {
-        case '"':
-            buf_next_char();
-            return err;
-        case '\\':
-            if (buf_get_next_char(ch) != 0) {
-                err.id = NCC_EOF;
-                return err;
-            }
-            switch (ch) {
-            // line continuation, skip
-            case '\n':    continue;
-            // add character as-is
-            case '"':
-            case '\\':    break;
-            // convert to escaped version
-            case 'r':     ch = '\r';    break;
-            case 'n':     ch = '\n';    break;
-            case 't':     ch = '\t';    break;
-            case 'a':     ch = '\a';    break;
-            case 'b':     ch = '\b';    break;
-            // unicode encoding
-            case 'u':
-                if (get_ucode_num(tok) == NCC_INVALID_UTF8) {
-                    err.id = NCC_INVALID_UTF8;
-                    err.line = buf_line_pos;
-                    err.col  = buf_col_pos;
-                }
-                continue;
-            // unknown escape sequence
-            default:
-                err.id = NCC_UNKNOWN_ESCAPE_SEQ;
-                err.line = buf_line_pos;
-                err.col  = buf_col_pos;
-                err.str  = {'\\', ch};
-                continue;
-            }
-        }
-        tok.string_val += ch;
-    }
-    err.id = NCC_EOF;
-    return err;
-}
-
-Error ident_token(Token &tok) {
-    Error err;
-    err.id = NCC_OK;
-
-    char ch;
-    buf_get_curr_char(ch);
-    string ident_str (1, ch);
-    
-    while (buf_get_next_char(ch) == 0 && 
-          (is_alpha(ch) || is_digit(ch) || is_underscore(ch))) {
-        ident_str += ch;
-    }
-
-    tok.id = TOKEN_IDENT;
-    tok.string_val = ident_str;
-    return err;
-}
-
-Error int_token(Token &tok) {
-    Error err;
-    err.id = NCC_OK;
-    tok.id = TOKEN_INTEGER;
-
-    char ch;
-    buf_get_curr_char(ch);
-    long val = ch - 48;
-
-    while (buf_get_next_char(ch) == 0 && is_digit(ch)) {
-        val *= 10;
-        val += (ch - 48);
-    }
-
-    tok.int_val = val;
-    return err;
-}
-
-Error float_token(Token &tok) {
-    Error err;
-    return err;
 }
 
 // 0 - 9
