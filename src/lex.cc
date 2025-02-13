@@ -38,6 +38,8 @@ bool lex_eof() {
     return end_of_file;
 }
 
+// Get a token from the buffer reading the input file
+//   returns an error, modifies the Token parameter
 Error get_token(Token &tok) {
     tok.id   = TOKEN_NULL;
     tok.line = buf_line_pos;
@@ -159,7 +161,9 @@ Error get_token(Token &tok) {
     return err;
 }
 
-
+// Ignores block comment, returns the next token
+//   if EOF encountered before the end of the block comment ->>
+//   and NCC_EOF error is returned (unexpected end of file)
 Error block_comment(Token &tok) {
     char ch;
     Error err;
@@ -177,7 +181,7 @@ Error block_comment(Token &tok) {
     return err;
 }
 
-
+// gathers the string name of an identifier token
 Error ident_token(Token &tok) {
     Error err;
     err.id = NCC_OK;
@@ -196,7 +200,7 @@ Error ident_token(Token &tok) {
     return err;
 }
 
-// 
+// adds token integer value as integer characters are parsed for an integer token
 Error int_token(Token &tok) {
     Error err;
     err.id = NCC_OK;
