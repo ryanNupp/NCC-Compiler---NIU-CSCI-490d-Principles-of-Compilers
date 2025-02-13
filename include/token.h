@@ -49,7 +49,8 @@ struct Token {
     int id = TOKEN_NULL;
     int line, col;
 
-    double num_val;
+    long int_val;
+    double float_val;
     std::string string_val;
 };
 

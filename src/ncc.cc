@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
         err = get_token(tok);
         if (err.id != NCC_OK)
             print_error(err);
-        else
+        if (tok.id != TOKEN_NULL)
             print_token(tok);
     }
 
