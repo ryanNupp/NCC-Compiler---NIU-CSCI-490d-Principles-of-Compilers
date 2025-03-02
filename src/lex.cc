@@ -1,7 +1,6 @@
+#include <cmath>
 #include <string>
-
-#include <iostream>
-#include <bitset>
+#include <cctype>
 
 #include "lex.h"
 #include "bufio.h"
@@ -14,17 +13,13 @@ Error block_comment(Token&);
 Error ident_token(Token&);
 Error string_token(Token&);
 Error int_token(Token&);
-Error float_token(Token&);
+Error real_token(Token&);
 int get_ucode_num(Token&);
-bool is_digit(char&);
-bool is_hex(char&);
-bool is_alpha(char&);
-bool is_underscore(char&);
 
-bool end_of_file;
+bool eof_flag;
 
 Error lex_init(const char *filepath) {
-    end_of_file = false;
+    eof_flag = false;
     Error err;
     err.id = buf_init(filepath);
     return err;
@@ -35,7 +30,7 @@ void lex_cleanup() {
 }
 
 bool lex_eof() {
-    return end_of_file;
+    return eof_flag;
 }
 
 // Get a token from the buffer reading the input file
@@ -52,7 +47,7 @@ Error get_token(Token &tok) {
     err.line = buf_line_pos;
     err.col  = buf_col_pos;
     if (buf_get_curr_char(ch) == -2) {
-        end_of_file = true;
+        eof_flag = true;
         tok.id = TOKEN_EOF;
         return err;
     }
@@ -76,7 +71,6 @@ Error get_token(Token &tok) {
     case '|':    tok.id = TOKEN_OR;           break;
     case ';':    tok.id = TOKEN_SEMICOLON;    break;
     case ':':    tok.id = TOKEN_COLON;        break;
-    case '.':    tok.id = TOKEN_DOT;          break;
     case ',':    tok.id = TOKEN_COMMA;        break;
     case '@':    tok.id = TOKEN_AT;           break;
     case '(':    tok.id = TOKEN_LPAREN;       break;
@@ -85,6 +79,17 @@ Error get_token(Token &tok) {
     case '}':    tok.id = TOKEN_RBRACE;       break;
     case '[':    tok.id = TOKEN_LBRACKET;     break;
     case ']':    tok.id = TOKEN_RBRACKET;     break;
+
+    // tokens  .  token_real (floating point value)
+    case '.':
+        if (buf_get_next_char(ch) == 0 && isdigit(ch)) {
+            buf_prev_char();
+            tok.int_val = 0;
+            return real_token(tok);
+        }
+        buf_prev_char();
+        tok.id = TOKEN_DOT;
+        break;
 
     // tokens  ~  ~=
     case '~':
@@ -146,11 +151,11 @@ Error get_token(Token &tok) {
     
     default:
         // identifiers
-        if (is_alpha(ch) || is_underscore(ch))
+        if (isalpha(ch) || ch == '_')
             return ident_token(tok);
 
         // integers
-        else if (is_digit(ch))
+        else if (isdigit(ch))
             return int_token(tok);
 
         err.ch = ch;
@@ -191,7 +196,7 @@ Error ident_token(Token &tok) {
     string ident_str (1, ch);
     
     while (buf_get_next_char(ch) == 0 && 
-          (is_alpha(ch) || is_digit(ch) || is_underscore(ch))) {
+          (isalpha(ch) || isdigit(ch) || ch == '_')) {
         ident_str += ch;
     }
 
@@ -208,20 +213,119 @@ Error int_token(Token &tok) {
 
     char ch;
     buf_get_curr_char(ch);
-    long val = ch - 48;
+    tok.int_val = ch - 48;
 
-    while (buf_get_next_char(ch) == 0 && is_digit(ch)) {
-        val *= 10;
-        val += (ch - 48);
+    while (buf_get_next_char(ch) == 0 && isdigit(ch)) {
+        tok.int_val *= 10;
+        tok.int_val += (ch - 48);
     }
 
-    tok.int_val = val;
+    if (ch == '.' || ch == 'e') {
+        return real_token(tok);
+    }
+
     return err;
 }
 
 // TODO
-Error float_token(Token &tok) {
+Error real_token(Token &tok) {
     Error err;
+    err.id = NCC_OK;
+    tok.id = TOKEN_REAL;
+
+    tok.real_val = tok.int_val;
+
+    char ch;
+    buf_get_curr_char(ch);
+    int state = (ch == '.') ? 1 : 3;
+    double decimal_place = 1;
+    bool e_pos = true;
+
+    while (state > 0) {
+        switch (state) {
+        case 1:  // .
+            if (buf_get_next_char(ch) == -2 || !isdigit(ch))
+                state = 0;
+            else
+                state = 2;
+
+            break;
+
+        case 2:  // decimal digit (after .)
+            decimal_place *= 0.1;
+            tok.real_val += (ch - 48) * decimal_place;
+
+            if (buf_get_next_char(ch) == -2) {
+                state = 0;
+                break;
+            }
+
+            if (isdigit(ch))
+                state = 2;
+            else if (ch == 'e' || ch == 'E')
+                state = 3; 
+            else
+                state = 0;
+
+            break;
+
+        case 3:  // e
+            if (buf_get_next_char(ch) == -2) {
+                state = -1;
+                break;
+            }
+            
+            if (ch == '+' || ch == '-') {
+                e_pos = (ch == '+');
+                if (buf_get_next_char(ch) == -2) {
+                    state = -1;
+                    break;
+                }
+            }
+
+            if (isdigit(ch)) {
+                decimal_place = 0;
+                state = 4;
+            }
+            else {
+                state = -1;
+            }
+            
+            break;
+
+        case 4:  // decimal digit (after e)
+            
+            decimal_place *= 10;
+            decimal_place += ch - 48;
+
+            if (buf_get_next_char(ch) == -2) {
+                state = 5;
+                break;
+            }
+
+            if (isdigit(ch))
+                state = 4;
+            else
+                state = 5;
+
+            break;
+        
+        case 5:  // process sci notation (e)
+            tok.real_val *= pow((e_pos) ? 10 : 0.1, decimal_place);
+            state = 0;
+            break;
+        }
+    }
+
+    if (state == -1) {  // malformed real
+        buf_prev_char();
+        tok.id = TOKEN_NULL;
+        err.id = NCC_MALFORMED_REAL;
+        err.line = buf_line_pos;
+        err.col = buf_col_pos;
+        buf_next_char();
+    }
+
     return err;
 }
 
@@ -292,7 +396,7 @@ int get_ucode_num(Token &tok) {
     char ch;
 
     for (int i=0; i<6; i++) {
-        if (buf_get_next_char(ch) != 0 || !is_hex(ch)) {
+        if (buf_get_next_char(ch) == -2 || !isxdigit(ch)) {
             buf_prev_char();
             return NCC_INVALID_UTF8;
         }
@@ -300,13 +404,13 @@ int get_ucode_num(Token &tok) {
         ucode_num *= 0x10;
         
         // 0 - 9
-        if (is_digit(ch))
+        if (isdigit(ch))
             ucode_num += ch - 48;
         // A - F
-        else if (is_alpha(ch) && ch <= 70)
+        else if (isalpha(ch) && ch <= 70)
             ucode_num += ch - 65 + 10;
         // a - f
-        else if (is_alpha(ch) && ch >= 97)
+        else if (isalpha(ch) && ch >= 97)
             ucode_num += ch - 97 + 10;
     }
 
@@ -351,27 +455,4 @@ int get_ucode_num(Token &tok) {
     }
     
     return NCC_OK;
-}
-
-// 0 - 9
-bool is_digit(char &ch) {
-    return (ch >= '0' && ch <= '9');
-}
-
-// 0 - 9, a - f, A - F
-bool is_hex(char &ch) {
-    return is_digit(ch)
-        || (ch >= 'a' && ch <= 'f')
-        || (ch >= 'A' && ch <= 'F');
-}
-
-// a - z   or A - Z
-bool is_alpha(char &ch) {
-    return (ch >= 'a' && ch <= 'z')
-        || (ch >= 'A' && ch <= 'Z');
-}
-
-// _
-bool is_underscore(char &ch) {
-    return (ch == '_');
 }

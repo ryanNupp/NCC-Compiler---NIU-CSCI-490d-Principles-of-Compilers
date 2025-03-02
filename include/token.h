@@ -40,7 +40,7 @@
 #define TOKEN_RBRACKET    27    //    ]
 // value-carrying tokens
 #define TOKEN_IDENT       28
-#define TOKEN_FLOAT       29
+#define TOKEN_REAL        29
 #define TOKEN_INTEGER     30
 #define TOKEN_STRING      31
 ////////////////////////////////////////
@@ -49,8 +49,8 @@ struct Token {
     int id = TOKEN_NULL;
     int line, col;
 
-    long int_val;
-    double float_val;
+    long long int int_val;
+    double real_val;
     std::string string_val;
 };
 

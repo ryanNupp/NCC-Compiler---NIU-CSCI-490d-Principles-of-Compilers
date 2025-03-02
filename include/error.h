@@ -11,6 +11,7 @@
 #define NCC_UNKNOWN_SYMBOL      -3
 #define NCC_UNKNOWN_ESCAPE_SEQ  -4
 #define NCC_INVALID_UTF8        -5
+#define NCC_MALFORMED_REAL      -6
 ////////////////////////////////////////
 
 struct Error {

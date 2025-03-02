@@ -25,5 +25,10 @@ void print_error(const Error &err) {
     case NCC_INVALID_UTF8:
         cout << "Invalid unicode " << " at "
              << err.line << ":" << err.col << "\n";
+        break;
+    case NCC_MALFORMED_REAL:
+        cout << "Malformed real " << " at "
+             << err.line << ":" << err.col << "\n";
+        break;
     }
 }
