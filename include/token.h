@@ -2,51 +2,53 @@
 
 #include <string>
 
-////////////////////////////////////////
-/////// TOKEN TYPE ////// ID ///////////
-////////////////////////////////////////
-#define TOKEN_NULL        0
-#define TOKEN_EOF         1
-// arithmetic operators
-#define TOKEN_PLUS        2     //    +
-#define TOKEN_MINUS       3     //    -
-#define TOKEN_MULT        4     //    *
-#define TOKEN_DIV         5     //    /
-#define TOKEN_EXP         6     //    ^
-// comparison operators
-#define TOKEN_LESS        7     //    <
-#define TOKEN_LESS_EQ     8     //    <=
-#define TOKEN_GREATER     9     //    >
-#define TOKEN_GREATER_EQ  10    //    >=
-#define TOKEN_EQUAL       11    //    =
-#define TOKEN_NOT_EQUAL   12    //    ~=
-// logical operators
-#define TOKEN_NOT         13    //    !
-#define TOKEN_AND         14    //    &
-#define TOKEN_OR          15    //    |
-// assignment operator
-#define TOKEN_ASSIGN      16    //    <-
-// other punctuation
-#define TOKEN_COLON       17    //    :
-#define TOKEN_SEMICOLON   18    //    ;
-#define TOKEN_COMMA       19    //    ,
-#define TOKEN_DOT         20    //    .
-#define TOKEN_AT          21    //    @
-#define TOKEN_LPAREN      22    //    (
-#define TOKEN_RPAREN      23    //    )
-#define TOKEN_LBRACE      24    //    {
-#define TOKEN_RBRACE      25    //    }
-#define TOKEN_LBRACKET    26    //    [
-#define TOKEN_RBRACKET    27    //    ]
-// value-carrying tokens
-#define TOKEN_IDENT       28
-#define TOKEN_REAL        29
-#define TOKEN_INTEGER     30
-#define TOKEN_STRING      31
-////////////////////////////////////////
+enum Token_Type {
+    TOKEN_NULL,
+    TOKEN_EOF,
+
+    // arithmetic operators
+    TOKEN_PLUS,
+    TOKEN_MINUS,
+    TOKEN_MULT,
+    TOKEN_DIV,
+    TOKEN_EXP,
+
+    // comparison operators
+    TOKEN_LESS,
+    TOKEN_LESS_EQ,
+    TOKEN_GREATER,
+    TOKEN_GREATER_EQ,
+    TOKEN_EQUAL,
+    TOKEN_NOT_EQUAL,
+    TOKEN_NOT,
+    TOKEN_AND,
+    TOKEN_OR,
+
+    // assig
+    TOKEN_ASSIGN,
+
+    // misc.
+    TOKEN_COLON,
+    TOKEN_SEMICOLON,
+    TOKEN_COMMA,
+    TOKEN_DOT,
+    TOKEN_AT,
+    TOKEN_LPAREN,
+    TOKEN_RPAREN,
+    TOKEN_LBRACE,
+    TOKEN_RBRACE,
+    TOKEN_LBRACKET,
+    TOKEN_RBRACKET,
+    
+    // value tokens
+    TOKEN_IDENT,
+    TOKEN_REAL,
+    TOKEN_INTEGER,
+    TOKEN_STRING
+};
 
 struct Token {
-    int id = TOKEN_NULL;
+    Token_Type id = TOKEN_NULL;
     int line, col;
 
     long long int int_val;

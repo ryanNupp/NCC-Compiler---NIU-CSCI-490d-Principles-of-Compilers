@@ -2,20 +2,20 @@
 
 #include <string>
 
-////////////////////////////////////////
-/////// ERROR TYPE //////////// ID /////
-////////////////////////////////////////
-#define NCC_OK                   0
-#define NCC_FILE_NOT_FOUND      -1
-#define NCC_EOF                 -2
-#define NCC_UNKNOWN_SYMBOL      -3
-#define NCC_UNKNOWN_ESCAPE_SEQ  -4
-#define NCC_INVALID_UTF8        -5
-#define NCC_MALFORMED_REAL      -6
-////////////////////////////////////////
+enum Error_Type {
+    NCC_OK,
+    NCC_FILE_NOT_FOUND,
+    NCC_EOF,
+    NCC_UNKNOWN_SYMBOL,
+    NCC_UNKNOWN_ESCAPE_SEQ,
+    NCC_INVALID_UTF8,
+    NCC_MALFORMED_REAL,
+    NCC_EXPECT_SYM,
+    NCC_UNEXPECT_SYM
+};
 
 struct Error {
-    int id;
+    Error_Type id = NCC_OK;
     int line, col;
 
     char ch;

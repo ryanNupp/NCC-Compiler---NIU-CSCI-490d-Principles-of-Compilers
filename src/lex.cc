@@ -20,8 +20,9 @@ bool eof_flag;
 
 Error lex_init(const char *filepath) {
     eof_flag = false;
-    Error err;
-    err.id = buf_init(filepath);
+    Error err{NCC_OK};
+    if (buf_init(filepath) == -1)
+        err.id = NCC_FILE_NOT_FOUND;
     return err;
 }
 
