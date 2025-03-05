@@ -3,6 +3,7 @@
 #include "lex.h"
 #include "error.h"
 #include "parse.h"
+#include "codegen.h"
 
 int main(int argc, char **argv) {
     // check if file arg is present
@@ -18,6 +19,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+
+
     Token tok;
     get_token(tok);
 
@@ -26,15 +29,17 @@ int main(int argc, char **argv) {
 
         parse_tree_printout();
 
+        // generate machine code
+        codegen_init();
+        codegen_gen(top_node);
+        
+        // execute program (prints output)
+        codegen_run();
         std::cout << "\n";
 
-        // generate machine code
-        
-        // execute program
-
         parse_tree_cleanup();
+        codegen_cleanup();
     }
-
     lex_cleanup();
 
     return 0;
