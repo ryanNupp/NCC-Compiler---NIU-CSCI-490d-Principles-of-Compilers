@@ -78,6 +78,9 @@ void IfNode::print(int indent) const
 void ElseNode::print(int indent) const
 {
     CNode::print(indent);
+    cout << "else\n";
+
+    else_body->print(indent+1);
 }
 
 // While
@@ -85,6 +88,9 @@ void ElseNode::print(int indent) const
 void WhileNode::print(int indent) const
 {
     CNode::print(indent);
+    cout << "while\n";
+
+    while_body->print(indent+1);
 }
 
 // Variable declaration

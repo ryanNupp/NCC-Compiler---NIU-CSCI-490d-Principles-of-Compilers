@@ -134,13 +134,13 @@ unique_ptr<CNode> Parser::parse_if_stmt()
         if (!eat(TOKEN_RBRACE, "}")) return nullptr;
     }
     else {
-        //get_token(tok);
         if_body = parse_stmt();
     }
     if (if_body == nullptr) return nullptr;
 
     unique_ptr<CNode> else_stmt = nullptr;
     if (tok.id == TOKEN_IDENT && tok.string_val == "else") {
+        get_token(tok);
         else_stmt = parse_else_stmt();
     }
 
@@ -150,21 +150,48 @@ unique_ptr<CNode> Parser::parse_if_stmt()
 
 unique_ptr<CNode> Parser::parse_else_stmt()
 {
+    unique_ptr<CNode> else_body = nullptr;
+
     // statement block vs. singular statement
     if (tok.id == TOKEN_LBRACE) {
-
+        get_token(tok);
+        else_body = parse_stmt_block();
+        if (!eat(TOKEN_RBRACE, "}")) return nullptr;
     }
     else {
-
+        else_body = parse_stmt();
     }
+    if (else_body == nullptr) return nullptr;
 
-    return nullptr;
+    return make_unique<ElseNode>(std::move(else_body));
 }
 
 
 unique_ptr<CNode> Parser::parse_while_stmt()
 {
-    return nullptr;    
+    if (!eat(TOKEN_LPAREN, "(")) return nullptr;
+
+    unique_ptr<CNode> expr_node = parse_expr();   // MIGHT HAVE TO: ensure it is a logical expression??
+    if (expr_node == nullptr) {
+        print_error(Error{NCC_EXPECT_EXPR, tok.line, tok.col});
+        return nullptr;
+    }
+
+    if (!eat(TOKEN_RPAREN, ")")) return nullptr;
+
+    unique_ptr<CNode> while_body = nullptr;
+
+    // statement block vs. singular statement
+    if (tok.id == TOKEN_LBRACE) {
+        get_token(tok);
+        while_body = parse_stmt_block();
+        if (!eat(TOKEN_RBRACE, "}")) return nullptr;
+    }
+    else {
+        while_body = parse_stmt();
+    }
+
+    return make_unique<WhileNode>(std::move(expr_node), std::move(while_body));
 }
 
 

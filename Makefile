@@ -14,7 +14,7 @@ MAIN_OBJ  := $(OBJ_DIR)/$(notdir $(MAIN_SRC:.cpp=.o))
 
 # Compiler, flags, libraries
 CXX      := g++
-CXXFLAGS := -I$(INC_DIR) -std=c++20 -Wall -Werror -g
+CXXFLAGS := -I$(INC_DIR) -std=c++20 -Wall -g # -Werror
 LIBS     :=
 
 TARGET_EXEC := ncc

@@ -34,9 +34,9 @@ int main(int argc, char **argv) {
         codetree->print(0);
         cout << "\n";
 
-        //codegen.generate(std::move(codetree));
-        //codegen.run();
-        //cout << "\n";
+        // codegen.generate(std::move(codetree));
+        // codegen.run();
+        // cout << "\n";
     }
 
     lex_cleanup();
