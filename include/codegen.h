@@ -1,11 +1,26 @@
 #pragma once
 
-#include "parse.h"
+#include <variant>
 
-void codegen_init();
+#include "parser.h"
+#include "cnode.h"
+#include "tables.h"
 
-void codegen_cleanup();
+using std::variant;
 
-void codegen_gen(CNode*);
+class Codegen {
+public:
+    using ValueType = variant<string, uint32_t>;
 
-void codegen_run();
+    Codegen(Parser&, SymbolTable&);
+    ~Codegen();
+
+    void generate(unique_ptr<CNode>);
+    void run();
+
+private:
+    Parser& parser;
+    SymbolTable& symtbl;
+    char* prog;
+    int p_offset = 0;
+};

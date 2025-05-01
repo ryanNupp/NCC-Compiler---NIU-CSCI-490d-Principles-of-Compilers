@@ -2,6 +2,8 @@
 
 #include <string>
 
+using std::string;
+
 // externally accessible variables
 extern size_t buf_line_pos;
 extern size_t buf_col_pos;
@@ -22,4 +24,4 @@ int buf_get_next_char(char&);
 bool buf_eof();
 
 // get line
-std::string buf_getline(int);
+string buf_getline(int);

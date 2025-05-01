@@ -3,4 +3,5 @@ obj/
 
 ncc
 compile_commands.json
+tests/
 txt.txt
