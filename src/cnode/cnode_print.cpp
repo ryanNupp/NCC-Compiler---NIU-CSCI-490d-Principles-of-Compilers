@@ -58,17 +58,10 @@ void IfNode::print(int indent) const
     CNode::print(indent);
     cout << "if\n";
 
-    CNode::print(indent);
-    cout << "(LOGICAL EXPR)\n";
     logic_expr->print(indent+1);
-
-    CNode::print(indent);
-    cout << "(BODY)\n";
     if_body->print(indent+1);
 
     if (else_stmt != nullptr) {
-        CNode::print(indent);
-        cout << "(ELSE STMT)\n";
         else_stmt->print(indent+1);
     }
 }
@@ -90,6 +83,7 @@ void WhileNode::print(int indent) const
     CNode::print(indent);
     cout << "while\n";
 
+    logic_expr->print(indent+1);
     while_body->print(indent+1);
 }
 
@@ -98,7 +92,7 @@ void WhileNode::print(int indent) const
 void VarDeclareNode::print(int indent) const
 {
     CNode::print(indent);
-    cout << "variable: " << var_name << "\n";
+    cout << "variable: " << var_name << " (var decl)\n";
 }
 
 // Variable assignment
@@ -106,7 +100,7 @@ void VarDeclareNode::print(int indent) const
 void VarAssignNode::print(int indent) const
 {
     CNode::print(indent);
-    cout << "<-\n";
+    cout << "<- (var assign)\n";
     CNode::print(indent);
     cout << "  variable: " << var_name << '\n';
     expr->print(indent+1);
@@ -124,7 +118,7 @@ void BinaryExpr::print(int indent) const
     case CNODE_OR:               cout << "|  (or)";                     break;
     case CNODE_AND:              cout << "&  (and)";                    break;
     case CNODE_EQUAL:            cout << "=  (equal)";                  break;
-    case CNODE_NOT_EQUAL:        cout << "~= (not equal)";              break;
+    case CNODE_NOT_EQ:           cout << "~= (not equal)";              break;
     case CNODE_LESS:             cout << "<  (less)";                   break;
     case CNODE_GREATER:          cout << ">  (greater)";                break;
     case CNODE_LESS_EQ:          cout << "<=  (less or equal)";         break;
@@ -194,5 +188,5 @@ void BoolNode::print(int indent) const
 void VariableNode::print(int indent) const
 {
     CNode::print(indent);
-    cout << "variable: " << var_name << "\n";
+    cout << "variable: " << var_name << " (var value)\n";
 }

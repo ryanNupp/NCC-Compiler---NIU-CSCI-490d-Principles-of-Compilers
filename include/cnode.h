@@ -38,7 +38,7 @@ enum CNodeType {
     CNODE_GREATER,
     CNODE_GREATER_EQ,
     CNODE_EQUAL,
-    CNODE_NOT_EQUAL,
+    CNODE_NOT_EQ,
 
     // arithmetic expressions
     CNODE_ADD,
@@ -254,60 +254,24 @@ public:
 //                           RELATIONAL EXPRESSIONS                          //
 ///////////////////////////////////////////////////////////////////////////////
 
-// Less than
-//
-class LessNode : public BinaryExpr {
+enum class RelateExprType {
+    LESS = CNODE_LESS,
+    LESS_EQ = CNODE_LESS_EQ,
+    GREATER = CNODE_GREATER,
+    GREATER_EQ = CNODE_GREATER_EQ,
+    EQUAL = CNODE_EQUAL,
+    NOT_EQ = CNODE_NOT_EQ
+};
+
+class RelateExprNode : public BinaryExpr {
+private:
+    RelateExprType type;
+
 public:
-    using BinaryExpr::BinaryExpr;
+    RelateExprNode(unique_ptr<CNode>, unique_ptr<CNode>, RelateExprType);
     void gen_node_code(char*&, int&, SymbolTable&) override;
     CNodeType get_node_type() const override;
 };
-
-// Less than or equal to
-//
-class LessEqualNode : public BinaryExpr {
-public:
-    using BinaryExpr::BinaryExpr;
-    void gen_node_code(char*&, int&, SymbolTable&) override;
-    CNodeType get_node_type() const override;
-};
-
-// Greater than
-//
-class GreaterNode : public BinaryExpr {
-public:
-    using BinaryExpr::BinaryExpr;
-    void gen_node_code(char*&, int&, SymbolTable&) override;
-    CNodeType get_node_type() const override;
-};
-
-// Greater than or equal to
-//
-class GreaterEqualNode : public BinaryExpr {
-public:
-    using BinaryExpr::BinaryExpr;
-    void gen_node_code(char*&, int&, SymbolTable&) override;
-    CNodeType get_node_type() const override;
-};
-
-// Equal to
-//
-class EqualNode : public BinaryExpr {
-public:
-    using BinaryExpr::BinaryExpr;
-    void gen_node_code(char*&, int&, SymbolTable&) override;
-    CNodeType get_node_type() const override;
-};
-
-// Not equal to
-//
-class NotEqualNode : public BinaryExpr {
-public:
-    using BinaryExpr::BinaryExpr;
-    void gen_node_code(char*&, int&, SymbolTable&) override;
-    CNodeType get_node_type() const override;
-};
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //                           ARITHMETIC EXPRESSIONS                          //

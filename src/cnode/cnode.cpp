@@ -194,60 +194,14 @@ CNodeType NotNode::get_node_type() const
 //                           RELATIONAL EXPRESSIONS                          //
 ///////////////////////////////////////////////////////////////////////////////
 
+RelateExprNode::RelateExprNode(unique_ptr<CNode> left_expr, unique_ptr<CNode> right_expr, RelateExprType type)
+    : BinaryExpr(std::move(left_expr), std::move(right_expr))
+    , type{type}
+{}
 
-// ============================== //
-//            Less than           //
-// ============================== //
-
-CNodeType LessNode::get_node_type() const
+CNodeType RelateExprNode::get_node_type() const
 {
-    return CNODE_LESS;
-}
-
-// ============================== //
-//      Less than or equal to     //
-// ============================== //
-
-
-CNodeType LessEqualNode::get_node_type() const
-{
-    return CNODE_LESS_EQ;
-}
-
-// ============================== //
-//          Greater than          //
-// ============================== //
-
-CNodeType GreaterNode::get_node_type() const
-{
-    return CNODE_GREATER;
-}
-
-// ============================== //
-//    Greater than or equal to    //
-// ============================== //
-
-CNodeType GreaterEqualNode::get_node_type() const
-{
-    return CNODE_GREATER_EQ;
-}
-
-// ============================== //
-//            Equal to            //
-// ============================== //
-
-CNodeType EqualNode::get_node_type() const
-{
-    return CNODE_EQUAL;
-}
-
-// ============================== //
-//          Not equal to          //
-// ============================== //
-
-CNodeType NotEqualNode::get_node_type() const
-{
-    return CNODE_NOT_EQUAL;
+    return static_cast<CNodeType>(type);
 }
 
 

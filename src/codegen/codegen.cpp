@@ -44,7 +44,7 @@ void Codegen::run()
     // cout << "END GEN CODE ----\n\n" << std::dec;
     // ------------------------------
 
-    // disassemble((unsigned char *)prog, p_offset);
+    // disassemble((unsigned char *)prog, p_offset);  cout << "\n";
 
     cout << "Code execution:\n";
 

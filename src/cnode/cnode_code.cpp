@@ -49,6 +49,12 @@ void print_str_literal(char* v)
 {
     cout << v;
 }
+
+void print_bool(bool b)
+{
+    cout << (b ? "true" : "false");
+}
+
 // --------------------------------------------
 
 void PrintNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
@@ -73,6 +79,11 @@ void PrintNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
         else if (expr_type == CNODE_VAR) {
             // TODO: figure out var type...
             print_helper = reinterpret_cast<intptr_t>(print_int_var);
+        }
+
+        // Bools : Literals, Logical Expressions (or, and, not), Relational Expressions (<, <=, >=, >, =, ~=)
+        else if (expr_type == CNODE_BOOL || ((expr_type >= CNODE_OR) && (expr_type <= CNODE_NOT_EQ))) {
+            print_helper = reinterpret_cast<intptr_t>(print_bool);
         }
 
         // ??
@@ -132,7 +143,40 @@ void ReadNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 
 void IfNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
+    logic_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0xa8;  // test al, 1
+    prog[p_offset++] = 0x01;
+    prog[p_offset++] = 0x0f;  // jz X   --   X: jump amount to be modified later...
+    prog[p_offset++] = 0x84;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    int else_jump_loc = p_offset - 4;
 
+    if_body->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0xe9;  // jmp Y   --   Y: jump amount to be modified later...
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    int if_jump_loc = p_offset - 4;
+
+    int else_jump_amt = (p_offset) - (else_jump_loc + 4);
+    for (int i = 0; i < 4; i++) {
+        prog[else_jump_loc++] = else_jump_amt & 0xff;
+        else_jump_amt >>= 8;
+    }
+
+    if (else_stmt) {
+        else_stmt->gen_node_code(prog, p_offset, symtbl);
+    }
+
+    int if_jump_amt = (p_offset) - (if_jump_loc + 4);
+    for (int i = 0; i < 4; i++) {
+        prog[if_jump_loc++] = if_jump_amt & 0xff;
+        if_jump_amt >>= 8;
+    }
 }
 
 // ============================== //
@@ -141,7 +185,7 @@ void IfNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 
 void ElseNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
-
+    else_body->gen_node_code(prog, p_offset, symtbl);
 }
 
 // ============================== //
@@ -150,7 +194,32 @@ void ElseNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 
 void WhileNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
+    prog[p_offset++] = 0xe9;  // jmp X  -- X: jump amount to be modified later...
+    prog[p_offset++] = 0x00;  // <-- cond_jump_offset (starts) HERE
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    int cond_jump_offset = p_offset - 4;
+    int while_body_offset = p_offset;
 
+    while_body->gen_node_code(prog, p_offset, symtbl);
+    int cond_jump_amt = (p_offset - 1) - (cond_jump_offset + 3);
+    //std::cout << "\nCOND_JUMP_AMT: " << std::hex << cond_jump_amt << std::dec << "\n";
+    for (unsigned long int i = 0; i < 4; i++) {
+        prog[cond_jump_offset++] = cond_jump_amt & 0xff;
+        cond_jump_amt >>= 8;
+    }
+
+    logic_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0xa8;  // test al, 1
+    prog[p_offset++] = 0x01;
+    prog[p_offset++] = 0x0f;  // jnz, Y  -- Y;
+    prog[p_offset++] = 0x85;
+    int body_jump_amt = while_body_offset - (p_offset + 4);
+    for (unsigned long int i = 0; i < 4; i++) {
+        prog[p_offset++] = body_jump_amt & 0xff;
+        body_jump_amt >>= 8;
+    }
 }
 
 // ============================== //
@@ -184,6 +253,11 @@ void VarDeclareNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symt
 void VarAssignNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
     expr->gen_node_code(prog, p_offset, symtbl);
+    if (expr->get_node_type() == CNODE_VAR) {
+        for (auto code : int_addr_to_val) {
+            prog[p_offset++] = code;
+        }
+    }
 
     auto [var_type, val_loc] = symtbl.getSymbol(var_name);
 
@@ -251,8 +325,33 @@ void UnaryExpr::gen_val_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 // ============================== //
 
 void OrNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
-{
+{    
+    // gen left_expr code -- place result in rax
+    left_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0x58;  // pop rax
 
+    // jump to end if left_expr is true (1)
+    prog[p_offset++] = 0xa8;  // test al, 1
+    prog[p_offset++] = 0x01;
+    prog[p_offset++] = 0x0f;  // jnz X   --   X: jump amount to be modified later...
+    prog[p_offset++] = 0x85;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    auto jnz_operand_loc = p_offset - 4;
+
+    // gen right_expr code -- place result in rax
+    right_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0x58;  // pop rax
+
+    // whatever the final result, place into the stack
+    prog[p_offset++] = 0x50;  // push rax  <-- This is where JNZ will jump to...
+    int jnz_amt = (p_offset - 1) - (jnz_operand_loc + 4);
+    for (unsigned long int i = 0; i < 4; i++) {
+        prog[jnz_operand_loc++] = jnz_amt & 0xff;
+        jnz_amt >>= 8;
+    }
 }
 
 // ============================== //
@@ -261,7 +360,32 @@ void OrNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 
 void AndNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
-    
+    // gen left_expr code -- place result in rax
+    left_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0x58;  // pop rax
+
+    // jump to end if left_expr is false (0)
+    prog[p_offset++] = 0xa8;  // test al, 1
+    prog[p_offset++] = 0x01;
+    prog[p_offset++] = 0x0f;  // jz X   --   X: jump amount to be modified later...
+    prog[p_offset++] = 0x84;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    prog[p_offset++] = 0x00;
+    auto jz_operand_loc = p_offset - 4;
+
+    // gen right_expr code -- place result in rax
+    right_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0x58;  // pop rax
+
+    // whatever the final result, place into the stack
+    prog[p_offset++] = 0x50;  // push rax  <-- This is where JZ will jump to...
+    int jz_amt = (p_offset - 1) - (jz_operand_loc + 4);
+    for (unsigned long int i = 0; i < 4; i++) {
+        prog[jz_operand_loc++] = jz_amt & 0xff;
+        jz_amt >>= 8;
+    }
 }
 
 // ============================== //
@@ -270,7 +394,11 @@ void AndNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 
 void NotNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
-    
+    val_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0x58;  // push rax
+    prog[p_offset++] = 0x34;  // xor al, 1
+    prog[p_offset++] = 0x01;
+    prog[p_offset++] = 0x50;  // pop rax
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -278,63 +406,33 @@ void NotNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 ///////////////////////////////////////////////////////////////////////////////
 
 
-// ============================== //
-//            Less than           //
-// ============================== //
-
-void LessNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
+void RelateExprNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
+    BinaryExpr::gen_left_right_code(prog, p_offset, symtbl);
 
+    array<uint8_t, 12> relate_code{
+        0x5b,                    // pop rbx
+        0x58,                    // pop rax
+        0x39, 0xd8,              // cmp eax, ebx
+        0x0f, 0x90, 0xc0,        // setcc al   --   modified as necessary below
+        0x48, 0x0f, 0xbe, 0xc0,  // movsx rax, al
+        0x50                     // push rax
+    };
+
+    switch (type) {
+    case RelateExprType::LESS:            relate_code[5] = 0x9c;      break;
+    case RelateExprType::LESS_EQ:         relate_code[5] = 0x9e;      break;
+    case RelateExprType::GREATER:         relate_code[5] = 0x9f;      break;
+    case RelateExprType::GREATER_EQ:      relate_code[5] = 0x9d;      break;
+    case RelateExprType::EQUAL:           relate_code[5] = 0x94;      break;
+    case RelateExprType::NOT_EQ:          relate_code[5] = 0x95;      break;
+    }
+
+    for (auto code : relate_code) {
+        prog[p_offset++] = code;
+    }
 }
 
-
-// ============================== //
-//      Less than or equal to     //
-// ============================== //
-
-void LessEqualNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
-{
-
-}
-
-
-// ============================== //
-//          Greater than          //
-// ============================== //
-
-void GreaterNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
-{
-
-}
-
-
-// ============================== //
-//    Greater than or equal to    //
-// ============================== //
-
-void GreaterEqualNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
-{
-
-}
-
-
-// ============================== //
-//            Equal to            //
-// ============================== //
-
-void EqualNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
-{
-
-}
-
-// ============================== //
-//          Not equal to          //
-// ============================== //
-
-void NotEqualNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
-{
-    
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 //                           ARITHMETIC EXPRESSIONS                          //
@@ -561,7 +659,15 @@ void StringNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 
 void BoolNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
-    
+    array<uint8_t, 7> bool_code {
+        0xb0, bool_val,          // mov al, (bool_val)
+        0x48, 0x0f, 0xbe, 0xc0,  // movsx rax, al
+        0x50                     // push rax
+    };
+
+    for (auto code : bool_code) {
+        prog[p_offset++] = code;
+    }
 }
 
 

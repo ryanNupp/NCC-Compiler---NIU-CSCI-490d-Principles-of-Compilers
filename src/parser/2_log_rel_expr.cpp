@@ -83,6 +83,18 @@ unique_ptr<CNode> Parser::parse_log_neg()
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+RelateExprType tokenToRelateExpr(Token_Type tok_type) {
+    switch (tok_type) {
+    case TOKEN_LESS:          return RelateExprType::LESS;
+    case TOKEN_LESS_EQ:       return RelateExprType::LESS_EQ;
+    case TOKEN_GREATER:       return RelateExprType::GREATER;
+    case TOKEN_GREATER_EQ:    return RelateExprType::GREATER_EQ;
+    case TOKEN_EQUAL:         return RelateExprType::EQUAL;
+    case TOKEN_NOT_EQUAL:     return RelateExprType::NOT_EQ;
+    default:                  break;
+    }
+}
+
 unique_ptr<CNode> Parser::parse_rel_expr()
 {
     auto left_expr = parse_arith_expr();
@@ -100,7 +112,7 @@ unique_ptr<CNode> Parser::parse_rel_expr()
             return nullptr;
         }
 
-        auto rel_id = tok.id;
+        auto rel_id = tokenToRelateExpr(tok.id);
         get_token(tok);
         auto right_expr = parse_arith_expr();
         if (right_expr == nullptr) {
@@ -115,15 +127,7 @@ unique_ptr<CNode> Parser::parse_rel_expr()
             return nullptr;
         }
 
-        switch (rel_id) {
-        case TOKEN_LESS:          return make_unique<LessNode>         (std::move(left_expr), std::move(right_expr));
-        case TOKEN_LESS_EQ:       return make_unique<LessEqualNode>    (std::move(left_expr), std::move(right_expr));
-        case TOKEN_GREATER:       return make_unique<GreaterNode>      (std::move(left_expr), std::move(right_expr));
-        case TOKEN_GREATER_EQ:    return make_unique<GreaterEqualNode> (std::move(left_expr), std::move(right_expr));
-        case TOKEN_EQUAL:         return make_unique<EqualNode>        (std::move(left_expr), std::move(right_expr));
-        case TOKEN_NOT_EQUAL:     return make_unique<NotEqualNode>     (std::move(left_expr), std::move(right_expr));
-        default:                  break;
-        }
+        return make_unique<RelateExprNode>(std::move(left_expr), std::move(right_expr), rel_id);
     }
 
     return left_expr;
