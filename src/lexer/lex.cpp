@@ -56,6 +56,7 @@ Error get_token(Token &tok) {
     switch (ch) {
     // ignore whitespace
     case ' ':
+    case '\t':
     case '\n':
         buf_next_char();
         return get_token(tok);
