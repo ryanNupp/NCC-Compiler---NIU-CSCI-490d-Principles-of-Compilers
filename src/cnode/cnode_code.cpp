@@ -144,6 +144,7 @@ void ReadNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 void IfNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
 {
     logic_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0x58;  // pop rax
     prog[p_offset++] = 0xa8;  // test al, 1
     prog[p_offset++] = 0x01;
     prog[p_offset++] = 0x0f;  // jz X   --   X: jump amount to be modified later...
@@ -211,6 +212,7 @@ void WhileNode::gen_node_code(char*& prog, int& p_offset, SymbolTable& symtbl)
     }
 
     logic_expr->gen_node_code(prog, p_offset, symtbl);
+    prog[p_offset++] = 0x58;  // pop rax
     prog[p_offset++] = 0xa8;  // test al, 1
     prog[p_offset++] = 0x01;
     prog[p_offset++] = 0x0f;  // jnz, Y  -- Y;
