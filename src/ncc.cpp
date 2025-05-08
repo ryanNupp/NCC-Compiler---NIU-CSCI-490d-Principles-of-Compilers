@@ -1,9 +1,13 @@
 #include <iostream>
+#include <memory>
 
 #include "lex.h"
 #include "error.h"
-#include "parse.h"
+#include "parser.h"
+#include "cnode.h"
 #include "codegen.h"
+
+using std::cout;
 
 int main(int argc, char **argv) {
     // check if file arg is present
@@ -19,28 +23,22 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    SymbolTable symtbl{};
+    Parser parser{symtbl};
+    Codegen codegen{parser, symtbl};
 
+    auto codetree = parser.parse();
 
-    Token tok;
-    get_token(tok);
+    if (!check_error_occur()) {
+        cout << "Code Tree:\n";
+        codetree->print(0);
+        cout << "\n";
 
-    while (!lex_eof()) {
-        parse(tok);
-
-        parse_tree_printout();
-
-        // generate machine code
-        codegen_init();
-        codegen_gen(top_node);
-        
-        // execute program (prints output)
-        codegen_run();
-        std::cout << "\n";
-
-        parse_tree_cleanup();
-        codegen_cleanup();
+        codegen.generate(std::move(codetree));
+        codegen.run();
+        cout << "\n";
     }
-    lex_cleanup();
 
+    lex_cleanup();
     return 0;
 }

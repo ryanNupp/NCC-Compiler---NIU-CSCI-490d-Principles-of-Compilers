@@ -34,7 +34,14 @@ int buf_init(const char *filepath) {
     file.read(buffer.data(), buffer.size());
     file.close();
 
-    line_starts.push_back(0);
+    for (size_t i = 0; i < buffer.size(); i++) {
+        if (i == 0 || buffer[i-1] == '\n') {
+            line_starts.push_back(i);
+        }
+        if (i == buffer.size() - 1 || buffer[i] == '\n') {
+            line_lengths.push_back(i - line_starts.back() + 1);
+        }
+    }
 
     return 0;
 }
@@ -61,12 +68,6 @@ int buf_next_char() {
 
         if (buf_line_pos > line_starts.size())
             line_starts.push_back(reading_pos);
-    }
-
-    // end of a line, calc length, add to line_lengths
-    if (buffer[reading_pos] == '\n' || reading_pos == buffer.size()-1) {
-        if (buf_line_pos > line_lengths.size())
-            line_lengths.push_back(reading_pos + 1 - line_starts.back());
     }
 
     buf_col_pos += 1;

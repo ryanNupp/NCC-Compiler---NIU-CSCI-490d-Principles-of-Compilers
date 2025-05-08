@@ -2,6 +2,8 @@
 
 #include <string>
 
+using std::string, std::string_view;
+
 enum Token_Type {
     TOKEN_NULL,
     TOKEN_EOF,
@@ -47,6 +49,8 @@ enum Token_Type {
     TOKEN_STRING
 };
 
+
+
 struct Token {
     Token_Type id = TOKEN_NULL;
     int line, col;
@@ -54,6 +58,11 @@ struct Token {
     long long int int_val;
     double real_val;
     std::string string_val;
+
+// funcs
+    void print();
+
+private:
+    constexpr string_view get_token_name();
 };
 
-void print_token(const Token&);

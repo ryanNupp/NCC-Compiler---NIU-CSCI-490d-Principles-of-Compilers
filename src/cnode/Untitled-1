@@ -1,0 +1,99 @@
+DISASSEMBLY:
+
+STMT BLOCK:
+|
++---VAR DECLARE NODE:
+|   0:  31 db                   xor    ebx,ebx
+|   2:  48 b8 20 20 12 08 fd    movabs rax,0x7ffd08122020
+|   9:  7f 00 00
+|   c:  89 18                   mov    DWORD PTR [rax],ebx
+|
+|
++---VAR ASSIGN NODE:
+|   |
+|   +---INTEGER NODE:
+|   |   e:  48 c7 c0 01 00 00 00    mov    rax,0x1
+|   |   15: 50                      push   rax
+|   |
+|   16: 48 b8 20 20 12 08 fd    movabs rax,0x7ffd08122020
+|   1d: 7f 00 00
+|   20: 5b                      pop    rbx
+|   21: 89 18                   mov    DWORD PTR [rax],ebx
+|
++---WHILE NODE
+    23: eb 42                   jmp    0x67
+    |
+    +---STMT BLOCK: (the while loop body)
+    |   |
+    |   +---PRINT NODE:
+    |   |   |
+    |   |   +---VARIABLE NODE: (var value)
+    |   |   |   25: 48 bb 20 20 12 08 fd    movabs rbx,0x7ffd08122020
+    |   |   |   2c: 7f 00 00
+    |   |   |   2f: 53                      push   rbx
+    |   |   |
+    |   |   30: 5f                      pop    rdi
+    |   |   31: 48 be 10 0d c3 3f 5f    movabs rsi,0x565f3fc30d10
+    |   |   38: 56 00 00
+    |   |   3b: ff d6                   call   rsi
+    |   |
+    |   +---VAR ASSIGN NODE:
+    |       |
+    |       +---ADDITION NODE:
+    |       |   |
+    |       |   +---VARIABLE NODE:
+    |       |   |   3d: 48 bb 20 20 12 08 fd    movabs rbx,0x7ffd08122020
+    |       |   |   44: 7f 00 00
+    |       |   |   47: 53                      push   rbx
+    |       |   |   |
+    |       |   |   (int_addr_to_val - helper func)
+    |       |   |   48: 5b                      pop    rbx
+    |       |   |   49: 8b 03                   mov    eax,DWORD PTR [rbx]
+    |       |   |   4b: 50                      push   rax
+    |       |   |
+    |       |   +---INTEGER NODE:
+    |       |   |   4c: 48 c7 c0 01 00 00 00    mov    rax,0x1
+    |       |   |   53: 50                      push   rax
+    |       |   |
+    |       |   54: 5b                      pop    rbx
+    |       |   55: 58                      pop    rax
+    |       |   56: 48 01 d8                add    rax,rbx
+    |       |   59: 50                      push   rax
+    |       |
+    |       |
+    |       5a: 48 b8 20 20 12 08 fd    movabs rax,0x7ffd08122020
+    |       61: 7f 00 00
+    |       64: 5b                      pop    rbx
+    |       65: 89 18                   mov    DWORD PTR [rax],ebx
+    |
+    +---LOGIC EXPR: (the while loop condition)
+    |   |
+    |   +---RELATE EXPR NODE:
+    |       |
+    |       +---VARIABLE NODE: (var value)
+    |       |   67: 48 bb 20 20 12 08 fd    movabs rbx,0x7ffd08122020
+    |       |   6e: 7f 00 00
+    |       |   71: 53                      push   rbx
+    |       |   |           
+    |       |   (int_addr_to_val - helper func)
+    |       |   72: 5b                      pop    rbx
+    |       |   73: 8b 03                   mov    eax,DWORD PTR [rbx]
+    |       |   75: 50                      push   rax
+    |       |
+    |       +---INTEGER NODE:
+    |       |   76: 48 c7 c0 0a 00 00 00    mov    rax,0xa
+    |       |   7d: 50                      push   rax
+    |       |
+    |       7e: 5b                      pop    rbx
+    |       7f: 58                      pop    rax
+    |       80: 39 d8                   cmp    eax,ebx
+    |       82: 0f 9c c0                setl   al
+    |       85: 48 0f be c0             movsx  rax,al
+    |       89: 50                      push   rax
+    |
+    8a: a8 01                   test   al,0x1
+    8c: 75 98                   jne    0x26
+
+
+
+8e: c3                      ret 
